@@ -1,0 +1,9 @@
+order_id,customer_id,order_date,total_amount,status
+O3001,C1001,2/20/2025,2000,Completed
+O3002,C1002,2/21/2025,800,Canceled
+O3003,C1001,2/18/2025,5000,Completed
+O3004,C1003,2/10/2025,1500,Completed
+O3005,C1003,2/15/2025,2500,Completed
+O3006,C1004,2/22/2025,400,Completed
+O3007,C1005,2/25/2025,3200,Canceled
+O3008,C1001,2/26/2025,1800,Completed

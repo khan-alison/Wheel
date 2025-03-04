@@ -1,0 +1,32 @@
+{
+  "input": {
+    "format": "csv",
+    "path": "./data/customers.csv",
+    "options": {
+      "header": true
+    },
+    "isCache": true,
+    "persistentLevel": "MEMORY_ONLY"
+  },
+  "transformation": [
+    {
+      "name": "join_df",
+      "params": {
+        "column_1": "",
+        "column_2": ""
+      },
+      "output": ""
+    }
+  ],
+  "output": {
+    "dataframe": "",
+    "format": "",
+    "scd" : {
+        "type": "",
+        "path": {
+            "current": "",
+            "history": ""
+        }
+    }
+  }
+}

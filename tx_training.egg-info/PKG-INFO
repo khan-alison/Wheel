@@ -1,0 +1,13 @@
+Metadata-Version: 2.2
+Name: tx-training
+Version: 0.6.0
+Summary: A package to run G2I tasks in Databricks via JoinCustomersIntoOrders
+Classifier: Programming Language :: Python :: 3
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Requires-Dist: pyspark>=2.4.0
+Requires-Dist: delta-spark>=3.2.0
+Dynamic: classifier
+Dynamic: requires-dist
+Dynamic: requires-python
+Dynamic: summary

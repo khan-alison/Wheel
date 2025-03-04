@@ -1,0 +1,6 @@
+customer_id,name,email,city,country,registration_date
+C1001,John Doe,john@example.com,New York,USA,1/15/2022
+C1002,Alice Lee,alice@example.com,London,UK,6/20/2023
+C1003,Bob Smith,bob@example.com,Los Angeles,USA,11/5/2021
+C1004,David Kim,david@example.com,Toronto,Canada,1/10/2024
+C1005,Emma Wang,emma@example.com,Sydney,Vietnam,8/12/2023
