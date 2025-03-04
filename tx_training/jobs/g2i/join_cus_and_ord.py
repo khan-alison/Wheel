@@ -3,6 +3,9 @@ import sys
 from tx_training.jobs.g2i.base_g2i import BaseG2I
 from pyspark.sql import DataFrame
 from typing import Dict
+from pyspark.dbutils import DBUtils
+from pyspark.sql import SparkSession
+import pyspark.sql.functions as F
 
 
 class JoinCustomersIntoOrders(BaseG2I):
@@ -15,8 +18,8 @@ class JoinCustomersIntoOrders(BaseG2I):
         if customers_df is None or orders_df is None:
             raise ValueError("Required input DataFrames are missing.")
 
-        result_df = customers_df.join(orders_df, on="customer_id", how="inner").where(
-            F.col(f"start_date >= {self.data_date}")
+        result_df = (
+            customers_df.join(orders_df, on="customer_id", how="inner")
         )
         return result_df
 
@@ -29,7 +32,20 @@ class JoinCustomersIntoOrders(BaseG2I):
         self.write_data(transformed_data)
 
 
-def run_execute():
+def run_execute(config_path=None, data_date=None):
+    print("config_path: ", config_path)
+    print("data_date: ", data_date)
+    g2i = JoinCustomersIntoOrders(config_path, data_date)
+    result = g2i.execute()
+
+
+def get_dbutils() -> DBUtils:
+    spark = SparkSession.builder.getOrCreate()
+    return DBUtils(spark)
+
+
+def main():
+    dbutils = get_dbutils()
     job_name = dbutils.jobs.taskValues.get(
         taskKey="create_params", key="job_name")
     data_date = dbutils.jobs.taskValues.get(
@@ -40,16 +56,8 @@ def run_execute():
     print("===========", job_name, data_date, skip_condition)
     metadata_filepath = f"/Workspace/Shared/tx_project_metadata/{job_name}.json"
 
-    print("config_path: ", config_path)
-    print("data_date: ", data_date)
-    g2i = JoinCustomersIntoOrders(metadata_filepath, data_date)
-    result = g2i.execute()
+    run_execute(config_path=metadata_filepath, data_date=data_date)
 
 
-# if __name__ == "__main__":
-#     # parser = argparse.ArgumentParser()
-#     # parser.add_argument("--config_path", default="",
-#     #                     help="Path to JSON config")
-#     # args = parser.parse_args()
-    
-#     run_execute(config_path=metadata_filepath, data_date=data_date)
+if __name__ == "__main__":
+    main()

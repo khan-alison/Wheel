@@ -1,2 +1,2 @@
 [console_scripts]
-tx-training = tx_training.jobs.g2i.join_cus_and_ord:run_execute
+tx-training = tx_training.jobs.g2i.join_cus_and_ord:main
