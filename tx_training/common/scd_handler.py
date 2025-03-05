@@ -52,7 +52,8 @@ class SCD_Handler:
         primary_keys = scd_conf.get("primary_keys", ["customer_id"])
         logger.info(f"Primary keys: {primary_keys}")
 
-        condition = " AND ".join(f"target.{col} = source.{col}" for col in primary_keys)
+        condition = " AND ".join(
+            f"target.{col} = source.{col}" for col in primary_keys)
 
         try:
             if is_table:
@@ -60,14 +61,16 @@ class SCD_Handler:
             else:
                 delta_table = DeltaTable.forPath(self.spark, output_path)
 
-            logger.info("Attempting to append data using merge (SCD Type 1)...")
+            logger.info(
+                "Attempting to append data using merge (SCD Type 1)...")
 
             delta_table.alias("target").merge(
                 df.alias("source"), condition
             ).whenMatchedUpdateAll().whenNotMatchedInsertAll().execute()
 
         except AnalysisException as e:
-            logger.warning(f"Append failed or Delta table not found. Error: {str(e)}")
+            logger.warning(
+                f"Append failed or Delta table not found. Error: {str(e)}")
             logger.info("Overwriting with new data instead.")
 
             if is_table:
@@ -95,7 +98,8 @@ class SCD_Handler:
         logger.info(f"primary_keys {primary_keys}")
         business_cols = [col for col in df.columns if col not in primary_keys]
         logger.info(f"business_cols {business_cols}")
-        hash_expr = F.sha2(F.concat_ws(".", *[F.col(c) for c in business_cols]), 256)
+        hash_expr = F.sha2(F.concat_ws(
+            ".", *[F.col(c) for c in business_cols]), 256)
         logger.info(f"hash_expr {hash_expr}")
         df_with_hash = df.withColumn("hash_data", hash_expr)
         logger.info(f"df_with_hash {df_with_hash}")
@@ -142,7 +146,8 @@ class SCD_Handler:
                 delta_table.alias("target").merge(
                     expired_records.alias("source"), join_condition
                 ).whenMatchedUpdate(
-                    set={"end_date": F.current_timestamp(), "is_current": F.lit(False)}
+                    set={"end_date": F.current_timestamp(),
+                         "is_current": F.lit(False)}
                 ).execute()
 
                 logger.info("after merfe")
@@ -190,15 +195,16 @@ class SCD_Handler:
         scd_conf: Dict[str, Any],
     ):
         logger.info(
-            f"Handling SCD Type 4 for {output_path['current']} and history in {output_path['history']}"
-        )
+            f"Handling SCD Type 4 for {output_path['current']} and history in {output_path['history']}")
         primary_keys = scd_conf["primary_keys"]
         business_cols = [col for col in df.columns if col not in primary_keys]
-        hash_expr = F.sha2(F.concat_ws(".", *[F.col(c) for c in business_cols]), 256)
+        hash_expr = F.sha2(F.concat_ws(
+            ".", *[F.col(c) for c in business_cols]), 256)
         df_with_hash = df.withColumn("hash_data", hash_expr)
-
+        logger.info(df_with_hash)
         current_path = output_path["current"]
         history_path = output_path["history"]
+
         try:
             if is_table:
                 current_table = DeltaTable.forName(self.spark, current_path)
@@ -207,60 +213,98 @@ class SCD_Handler:
                 current_table = DeltaTable.forPath(self.spark, current_path)
                 history_table = DeltaTable.forPath(self.spark, history_path)
 
+            # 2. Convert them to DataFrames for comparison
             current_df = current_table.toDF()
-            current_df_with_hash = current_df.withColumn("hash_data", hash_expr)
 
-            joined_df = (
-                df_with_hash.alias("new")
-                .join(current_df_with_hash.alias("old"), on=primary_keys, how="inner")
-                .filter(F.col("new.hash_data") != F.col("old.hash_data"))
+            current_df_with_hash = current_df.withColumn(
+                "hash_data",
+                F.sha2(F.concat_ws(".", *[F.col(c)
+                       for c in business_cols]), 256)
+            )
+            join_df = (
+                current_df.alias("old")
+                .join(df_with_hash.alias("new"),
+                      [F.col(f"old.{pk}") == F.col(f"new.{pk}")
+                       for pk in primary_keys],
+                      "full")
             )
 
-            updated_records_new = joined_df.select("new.*")
-            print("updated_records_new")
-            updated_records_new.show(10)
-            updated_records_old = joined_df.select("old.*")
-            print("updated_records_old")
-            updated_records_old.show(10)
-            if updated_records_new.count() > 0:
+            delete_records = join_df.filter(
+                F.col("old.hash_data").isNotNull() & F.col(
+                    "new.hash_data").isNull()
+            ).select("old.*")
+
+            update_records = join_df.filter(
+                F.col("old.hash_data").isNotNull()
+                & F.col("new.hash_data").isNotNull()
+                & (F.col("old.hash_data") != F.col("new.hash_data"))
+            ).select("old.*")
+
+            logger.info("join_df")
+            join_df.show(20)
+            logger.info("delete_records")
+            delete_records.show(20)
+            logger.info("update_record")
+            update_records.show(20)
+
+            old_versions_to_history = (
+                delete_records.unionByName(update_records)
+                .withColumn("end_date", F.current_timestamp())
+            )
+
+            logger.info("asdfasdfs")
+            old_versions_to_history.show(20)
+
+            if old_versions_to_history.count() > 0:
                 logger.info(
-                    f"🔄 Processing {updated_records_new.count()} updated records..."
+                    f"Appending {old_versions_to_history.count()} old/deleted records to history"
                 )
-                updated_records_old_with_end = updated_records_old.withColumn(
-                    "end_date", F.current_timestamp()
-                )
-                updated_records_old_with_end.show(20)
-                updated_records_old_with_end.write.format(output_format).mode(
-                    "append"
-                ).save(history_path)
-                delete_condition = " AND ".join(
-                    [f"target.{pk} = source.{pk}" for pk in primary_keys]
-                )
-                current_table.alias("target").merge(
-                    updated_records_old.alias("source"), delete_condition
-                ).whenMatchedDelete().execute()
-
-                updated_records_new.write.format(output_format).mode("append").save(
-                    current_path
+                old_versions_to_history.write.format(output_format).mode("append").save(
+                    history_path
                 )
 
-        except AnalysisException:
-            logger.info("Initializing SCD Type 4 tables as they don't exist.")
-            df_with_scd = df.withColumn("start_date", F.current_timestamp()).withColumn(
-                "end_date", F.lit(None).cast("timestamp")
-            )
+            new_snapshot = df_with_hash
+            logger.info("new_snapshot")
+            new_snapshot.show(20)
+
             if is_table:
-                df_with_scd.write.format(output_format).mode("overwrite").saveAsTable(
-                    current_path
-                )
-                df_with_scd.write.format(output_format).mode("overwrite").saveAsTable(
-                    history_path
-                )
+                new_snapshot.write.format(output_format) \
+                    .option("overwriteSchema", "true") \
+                    .mode("overwrite") \
+                    .saveAsTable(current_path)
             else:
-                df_with_scd.write.format(output_format).mode("overwrite").save(
-                    current_path
-                )
-                df_with_scd.write.format(output_format).mode("overwrite").save(
-                    history_path
-                )
-            logger.info("SCD Type 4 tables initialized with incoming data.")
+                new_snapshot.write.format(output_format) \
+                    .option("overwriteSchema", "true") \
+                    .mode("overwrite") \
+                    .save(current_path)
+
+            logger.info("SCD Type 4 processing complete.")
+
+        except AnalysisException as e:
+            logger.warning(f"Tables not found; initializing. Error: {str(e)}")
+            df_with_scd = (
+                df_with_hash
+                .withColumn("start_date", F.current_timestamp())
+                .withColumn("end_date", F.lit(None).cast("timestamp"))
+            )
+
+            if is_table:
+                df_with_scd.write.format(output_format)\
+                    .option("overwriteSchema", "true") \
+                    .mode("overwrite")\
+                    .saveAsTable(current_path)
+                df_with_scd.write.format(output_format)\
+                    .option("overwriteSchema", "true") \
+                    .mode("overwrite")\
+                    .saveAsTable(history_path)
+            else:
+                df_with_scd.write.format(output_format)\
+                    .option("overwriteSchema", "true") \
+                    .mode("overwrite")\
+                    .save(current_path)
+                df_with_scd.write.format(output_format)\
+                    .option("overwriteSchema", "true") \
+                    .mode("overwrite")\
+                    .save(history_path)
+                logger.info(
+                    "SCD Type 4 tables initialized with incoming data.")

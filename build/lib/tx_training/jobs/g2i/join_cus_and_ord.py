@@ -53,9 +53,10 @@ def main():
     skip_condition = dbutils.jobs.taskValues.get(
         taskKey="create_params", key="skip_condition"
     )
-    print("===========", job_name, data_date, skip_condition)
-    metadata_filepath = f"/Workspace/Shared/tx_project_metadata/{job_name}.json"
-
+    # print("===========", job_name, data_date, skip_condition)
+    # metadata_filepath = f"/Workspace/Shared/tx_project_metadata/{job_name}.json"
+    metadata_filepath = "tx_training/jobs/g2i/join_customer_order.json"
+    data_date = "2024-01-01"
     run_execute(config_path=metadata_filepath, data_date=data_date)
 
 

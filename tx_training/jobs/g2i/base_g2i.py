@@ -29,20 +29,6 @@ class BaseG2I:
         if master == "dbx":
             self.spark = DBxSparkSessionManager.get_session("tx-training")
         else:
-            # self.spark = SparkSession.builder.master("local[*]")\
-            #     .appName("test")\
-            #     .config("spark.driver.bindAddress", "127.0.0.1")\
-            #     .config("spark.driver.port", "7077")\
-            #     .config("spark.blockManager.port", "6066")\
-            #     .config("spark.ui.port", "4040")\
-            #     .config("spark.sql.shuffle.partitions", "5")\
-            #     .config("spark.network.timeout", "600s")\
-            #     .config("spark.executor.heartbeatInterval", "120s")\
-            #     .config("spark.databricks.delta.schema.autoMerge.enabled", "true")\
-            #     .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")\
-            #     .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")\
-            #     .config("spark.jars", "jars/delta-spark_2.12-3.2.0.jar, jars/delta-storage-3.2.0.jar")\
-            #     .getOrCreate()
             self.spark = LocalSparkSessionManager.get_session("tx-training")
         self.scd_handler = SCD_Handler(self.spark)
 

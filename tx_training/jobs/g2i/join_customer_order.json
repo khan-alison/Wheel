@@ -28,8 +28,11 @@
     "dataframe": "customer_orders",
     "format": "delta",
     "scd": {
-      "type": "scd2",
-      "path": "data/output/scd2/customers",
+      "type": "scd4",
+      "path": {
+        "current": "data/output/scd4/customers/current",
+        "history": "data/output/scd4/customers/history"
+      },
       "primary_keys": ["customer_id", "order_id"]
     }
   }

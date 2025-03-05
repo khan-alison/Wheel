@@ -1,2 +1,4 @@
 [console_scripts]
-tx-training = tx_training.jobs.g2i.join_cus_and_ord:main
+list_customers_from_3_cities = tx_training.jobs.g2i.list_customers_from_3_cities:main
+list_order_in_range = tx_training.jobs.g2i.list_order_in_range:main
+list_products_above_average = tx_training.jobs.g2i.list_products_above_average:main
