@@ -10,7 +10,10 @@ from tx_training.helper.logger import LoggerSimple
 import json
 from tx_training.common.scd_handler import SCD_Handler
 from pyspark.sql import DataFrame, SparkSession
-
+from tx_training.common.reader.csv_reader import CSVReader
+from tx_training.common.reader.delta_reader import DeltaReader
+from tx_training.common.writer.delta_writer import DeltaWriter
+from tx_training.common.writer.csv_writer import CSVWriter
 
 logger = LoggerSimple.get_logger(__name__)
 
@@ -19,18 +22,25 @@ class BaseG2I:
     def __init__(self, config_path, data_date):
         self.data_date = data_date
         self.config_path = config_path
-        
-        print("self.config_path: ", self.config_path)
+
         with open(self.config_path, "r") as f:
             self.config = json.load(f)
 
         master = self.config.get("master", "local").lower()
-        print(f"master {master}")
         if master == "dbx":
             self.spark = DBxSparkSessionManager.get_session("tx-training")
         else:
             self.spark = LocalSparkSessionManager.get_session("tx-training")
         self.scd_handler = SCD_Handler(self.spark)
+        self.readers = {
+            "csv": CSVReader,
+            "delta": DeltaReader,
+        }
+
+        self.writers = {
+            "csv": CSVWriter,
+            "delta": DeltaWriter,
+        }
 
     @abstractmethod
     def read_input(self):
@@ -38,33 +48,17 @@ class BaseG2I:
         input_config = self.config.get("input", [])
         for entry in input_config:
             df_name = entry.get("name", entry["df_name"])
-            input_path = entry.get("table", None)
-            logger.info(df_name)
             input_format = entry.get("format")
-            options = entry.get("option", {})
-            if input_format == "csv":
-                reader = self.spark.read.format("csv")
-                for key, value in options.items():
-                    reader = reader.option(key, value)
-                df = reader.load(input_path)
-            elif input_format == "delta":
-                if "." in input_path and not input_path.startswith("dbfs:/"):
-                    df = self.spark.table(input_path)
-                else:
-                    df = self.spark.read.format("delta").load(input_path)
-            else:
+            input_path = entry.get("table")
+            if input_format not in self.readers:
                 raise ValueError(f"Unsupported format: {input_format}")
 
-            if entry.get("isCache", False):
-                level_str = entry.get("persistentLevel", "MEMORY_ONLY")
-                storage_level = getattr(
-                    StorageLevel, level_str, StorageLevel.MEMORY_ONLY
-                )
-                df = df.persist(storage_level)
-            dfs[df_name] = df
+            reader_class = self.readers[input_format]
+            reader = reader_class(self.spark, input_path, entry)
+            df = reader.read()
 
+            dfs[df_name] = df
             logger.info(f"Loaded DataFrame: {df_name}")
-            print(dfs)
         return dfs
 
     @abstractmethod
@@ -75,9 +69,18 @@ class BaseG2I:
     def write_data(self, df: DataFrame):
         output_config = self.config["outputs"]
         logger.info(output_config)
-        output_format = output_config.get("format")
-        logger.info(output_format)
-        scd_conf = output_config.get("scd")
-        logger.info(scd_conf)
 
-        self.scd_handler.process(df, scd_conf)
+        output_format = output_config.get("format")
+        output_path = output_config.get("scd", {}).get(
+            "path", output_config.get("path"))
+        options = output_config.get("options", {})
+        scd_conf = output_config.get("scd", None)
+
+        if output_format not in self.writers:
+            raise ValueError(f"Unsupported output format: {output_format}")
+
+        writer_class = self.writers[output_format]
+        writer = writer_class(self.spark, self.scd_handler, scd_conf, options)
+
+        logger.info(f"Writing DataFrame to {output_format} at {output_path}")
+        writer.write(df)

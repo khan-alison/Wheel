@@ -33,8 +33,6 @@ class JoinCustomersIntoOrders(BaseG2I):
 
 
 def run_execute(config_path=None, data_date=None):
-    print("config_path: ", config_path)
-    print("data_date: ", data_date)
     g2i = JoinCustomersIntoOrders(config_path, data_date)
     result = g2i.execute()
 

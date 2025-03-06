@@ -50,8 +50,6 @@ class ListProductsAboveAverage(BaseG2I):
 
 
 def run_execute(config_path=None, data_date=None):
-    print("config_path:", config_path)
-    print("data_date:", data_date)
     pipeline = ListProductsAboveAverage(config_path, data_date)
     pipeline.execute()
 

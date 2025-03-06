@@ -1,11 +1,9 @@
 import argparse
 import sys
 from typing import Dict
-
 from pyspark.dbutils import DBUtils
 from pyspark.sql import SparkSession, DataFrame
 import pyspark.sql.functions as F
-
 from tx_training.jobs.g2i.base_g2i import BaseG2I
 
 
@@ -57,8 +55,6 @@ class ListCustomersFrom3Cities(BaseG2I):
 
 
 def run_execute(config_path=None, data_date=None):
-    print("config_path:", config_path)
-    print("data_date:", data_date)
     pipeline = ListCustomersFrom3Cities(config_path, data_date)
     pipeline.execute()
 
@@ -76,8 +72,6 @@ def main():
         taskKey="create_params", key="data_date")
     skip_condition = dbutils.jobs.taskValues.get(
         taskKey="create_params", key="skip_condition")
-
-    print("===========", job_name, data_date, skip_condition)
     metadata_filepath = f"/Workspace/Shared/tx_project_metadata/{job_name}.json"
 
     run_execute(config_path=metadata_filepath, data_date=data_date)
