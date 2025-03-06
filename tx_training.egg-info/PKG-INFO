@@ -1,6 +1,6 @@
 Metadata-Version: 2.2
 Name: tx-training
-Version: 1.1.0
+Version: 1.1.1.1
 Summary: A package to run G2I tasks in Databricks via JoinCustomersIntoOrders
 Classifier: Programming Language :: Python :: 3
 Classifier: Operating System :: OS Independent

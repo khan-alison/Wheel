@@ -17,10 +17,13 @@ tx_training/common/spark_session/local_spark_session.py
 tx_training/common/spark_session/spark_session_manager.py
 tx_training/helper/__init__.py
 tx_training/helper/logger.py
+tx_training/helper/pre_check.py
 tx_training/jobs/__init__.py
 tx_training/jobs/g2i/__init__.py
 tx_training/jobs/g2i/base_g2i.py
-tx_training/jobs/g2i/join_customer_order.json
+tx_training/jobs/g2i/join_cus_and_ord.py
+tx_training/jobs/g2i/join_customer_loans.py
 tx_training/jobs/g2i/list_customers_from_3_cities.py
 tx_training/jobs/g2i/list_order_in_range.py
 tx_training/jobs/g2i/list_products_above_average.py
+tx_training/jobs/g2i/monthly.json
