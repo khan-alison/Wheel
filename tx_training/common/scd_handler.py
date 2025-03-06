@@ -14,7 +14,7 @@ class SCD_Handler:
     def __init__(self, spark: SparkSession):
         self.spark = spark
 
-    def process(self, df: DataFrame, scd_conf: dict):
+    def process(self, df: DataFrame, scd_conf: dict, data_date: str):
         output_path = scd_conf.get("path")
         scd_type = scd_conf.get("type", "scd2")
         logger.info(scd_type)
@@ -27,15 +27,15 @@ class SCD_Handler:
 
         if scd_type == "scd1":
             self._handle_scd1(
-                df, output_path, output_format, "append", is_table, scd_conf
+                df, output_path, output_format, "append", is_table, scd_conf, data_date
             )
         elif scd_type == "scd2":
             self._handle_scd2(
-                df, output_path, output_format, save_mode, is_table, scd_conf
+                df, output_path, output_format, save_mode, is_table, scd_conf, data_date
             )
         elif scd_type == "scd4":
             self._handle_scd4(
-                df, output_path, output_format, save_mode, is_table, scd_conf
+                df, output_path, output_format, save_mode, is_table, scd_conf, data_date
             )
         else:
             raise ValueError(f"Unsupported SCD type: {scd_type}")
@@ -48,9 +48,15 @@ class SCD_Handler:
         save_mode: str,
         is_table: bool,
         scd_conf: Dict[str, Any],
+        data_date: str
     ):
         primary_keys = scd_conf.get("primary_keys", ["customer_id"])
-        logger.info(f"Primary keys: {primary_keys}")
+        partition_cols = scd_conf.get(
+            "partition_by", [])
+
+        logger.info(f"Handling SCD Type 1 for {output_path}")
+        logger.info(
+            f"Primary keys: {primary_keys}, Partitioning by: {partition_cols}")
 
         condition = " AND ".join(
             f"target.{col} = source.{col}" for col in primary_keys)
@@ -73,16 +79,18 @@ class SCD_Handler:
                 f"Append failed or Delta table not found. Error: {str(e)}")
             logger.info("Overwriting with new data instead.")
 
-            if is_table:
-                df.write.format(output_format).option("overwriteSchema", "true").mode(
-                    "overwrite"
-                ).saveAsTable(output_path)
-            else:
-                df.write.format(output_format).option("overwriteSchema", "true").mode(
-                    "overwrite"
-                ).save(output_path)
+            writer = df.write.format(output_format).option(
+                "overwriteSchema", "true").mode("overwrite")
 
-            logger.info("Successfully overwritten the Delta table.")
+            if partition_cols:
+                writer = writer.partitionBy(partition_cols)
+
+            if is_table:
+                writer.saveAsTable(output_path)
+            else:
+                writer.save(output_path)
+
+        logger.info("SCD Type 1 processing completed.")
 
     def _handle_scd2(
         self,
@@ -92,6 +100,7 @@ class SCD_Handler:
         save_mode: str,
         is_table: bool,
         scd_conf: Dict[str, Any],
+        data_date: str
     ):
         logger.info(f"Handling SCD Type 2 for {output_path}")
         primary_keys = scd_conf["primary_keys"]
@@ -104,6 +113,9 @@ class SCD_Handler:
         df_with_hash = df.withColumn("hash_data", hash_expr)
         logger.info(f"df_with_hash {df_with_hash}")
         df_with_hash.show(20)
+        if data_date and "data_date" in partition_cols and "data_date" not in df.columns:
+            df_with_hash = df_with_hash.withColumn(
+                "data_date", F.lit(data_date))
         try:
             delta_table = (
                 DeltaTable.forPath(self.spark, output_path)
@@ -161,10 +173,13 @@ class SCD_Handler:
                     .withColumn("end_date", F.lit(None).cast("timestamp"))
                     .withColumn("is_current", F.lit(True))
                 )
-                logger.info("new_versions")
-                new_versions.write.format(output_format).mode("append").save(
-                    output_path
-                )
+                writer = new_versions.write.format(
+                    output_format).mode("append")
+
+                if partition_cols:
+                    writer = writer.partitionBy(partition_cols)
+
+                writer.save(output_path)
 
                 logger.info("SCD Type 2 processing complete.")
 
@@ -176,14 +191,20 @@ class SCD_Handler:
                 .withColumn("is_current", F.lit(True))
                 .withColumn("hash_data", hash_expr)
             )
+
+            if data_date and "data_date" in partition_cols and "data_date" not in df.columns:
+                df_with_hash = df_with_hash.withColumn(
+                    "data_date", F.lit(data_date))
+
+            writer = df_with_scd.write.format(output_format).option(
+                "overwriteSchema", "true"
+            ).mode("overwrite")
+            if partition_cols:
+                writer = writer.partitionBy(partition_cols)
             if is_table:
-                df_with_scd.write.format(output_format).option(
-                    "overwriteSchema", "true"
-                ).mode("overwrite").saveAsTable(output_path)
+                writer.saveAsTable(output_path)
             else:
-                df_with_scd.write.format(output_format).option(
-                    "overwriteSchema", "true"
-                ).mode("overwrite").save(output_path)
+                writer.save(output_path)
 
     def _handle_scd4(
         self,
@@ -193,10 +214,12 @@ class SCD_Handler:
         save_mode: str,
         is_table: bool,
         scd_conf: Dict[str, Any],
+        data_date: str
     ):
         logger.info(
             f"Handling SCD Type 4 for {output_path['current']} and history in {output_path['history']}")
         primary_keys = scd_conf["primary_keys"]
+        partition_cols = scd_conf.get("partition_by", [])
         business_cols = [col for col in df.columns if col not in primary_keys]
         hash_expr = F.sha2(F.concat_ws(
             ".", *[F.col(c) for c in business_cols]), 256)
@@ -213,7 +236,6 @@ class SCD_Handler:
                 current_table = DeltaTable.forPath(self.spark, current_path)
                 history_table = DeltaTable.forPath(self.spark, history_path)
 
-            # 2. Convert them to DataFrames for comparison
             current_df = current_table.toDF()
 
             current_df_with_hash = current_df.withColumn(
@@ -240,44 +262,34 @@ class SCD_Handler:
                 & (F.col("old.hash_data") != F.col("new.hash_data"))
             ).select("old.*")
 
-            logger.info("join_df")
-            join_df.show(20)
-            logger.info("delete_records")
-            delete_records.show(20)
-            logger.info("update_record")
-            update_records.show(20)
-
             old_versions_to_history = (
                 delete_records.unionByName(update_records)
                 .withColumn("end_date", F.current_timestamp())
             )
 
-            logger.info("asdfasdfs")
-            old_versions_to_history.show(20)
-
             if old_versions_to_history.count() > 0:
                 logger.info(
                     f"Appending {old_versions_to_history.count()} old/deleted records to history"
                 )
-                old_versions_to_history.write.format(output_format).mode("append").save(
-                    history_path
-                )
+                history_writer = old_versions_to_history.write.format(
+                    output_format).mode("append")
+                if partition_cols:
+                    history_writer = history_writer.partitionBy(partition_cols)
+
+                history_writer.save(history_path)
 
             new_snapshot = df_with_hash
-            logger.info("new_snapshot")
-            new_snapshot.show(20)
+            snapshot_writer = new_snapshot.write.format(output_format) \
+                .option("overwriteSchema", "true") \
+                .mode("overwrite")
+
+            if partition_cols:
+                snapshot_writer = snapshot_writer.partitionBy(partition_cols)
 
             if is_table:
-                new_snapshot.write.format(output_format) \
-                    .option("overwriteSchema", "true") \
-                    .mode("overwrite") \
-                    .saveAsTable(current_path)
+                snapshot_writer.saveAsTable(current_path)
             else:
-                new_snapshot.write.format(output_format) \
-                    .option("overwriteSchema", "true") \
-                    .mode("overwrite") \
-                    .save(current_path)
-
+                snapshot_writer.save(current_path)
             logger.info("SCD Type 4 processing complete.")
 
         except AnalysisException as e:
@@ -288,21 +300,111 @@ class SCD_Handler:
                 .withColumn("end_date", F.lit(None).cast("timestamp"))
             )
 
+            history_writer = df_with_scd.write.format(output_format) \
+                .option("overwriteSchema", "true") \
+                .mode("overwrite")
+
+            snapshot_writer = df_with_scd.write.format(output_format) \
+                .option("overwriteSchema", "true") \
+                .mode("overwrite")
+
+            if partition_cols:
+                history_writer = history_writer.partitionBy(partition_cols)
+                snapshot_writer = snapshot_writer.partitionBy(partition_cols)
+
+            if is_table:
+                snapshot_writer.saveAsTable(current_path)
+                history_writer.saveAsTable(history_path)
+            else:
+                snapshot_writer.save(current_path)
+                history_writer.save(history_path)
+                logger.info(
+                    "SCD Type 4 tables initialized with incoming data.")
+
+    def _scd4_cdf(
+            self,
+            output_path: str,
+            output_format: str,
+            save_mode: str,
+            is_table: bool,
+            scd_conf: Dict[str, Any],
+    ):
+        """
+        NEED TO ENABLE CDF FIRST
+        """
+        logger.info(
+            f"Handling SCD Type 4 with CDF for {output_path['current']} and history in {output_path['history']}")
+        primary_keys = scd_conf["primary_keys"]
+        current_path = output_path["current"]
+        history_path = output_path["history"]
+        try:
+            if is_table:
+                current_table = DeltaTable.forName(self.spark, current_path)
+            else:
+                current_table = DeltaTable.forPath(self.spark, current_path)
+
+            logger.info("Reading Change Data Feed (CDF)...")
+            cdf_df = self.spark.read.format("delta") \
+                .option("readChangeData", "true") \
+                .table(current_path)
+
+            delete_records = cdf_df\
+                .filter(F.col("_change_type") == "delete")
+            update_old_records = cdf_df\
+                .filter(F.col("_change_type") == "update_preimage")
+            update_new_records = cdf_df\
+                .filter(F.col("_change_type") == "update_postimage")
+            insert_records = cdf_df\
+                .filter(F.col("_change_type") == "insert")
+
+            if delete_records.count() > 0 or update_old_records.count() > 0:
+                history_updates = delete_records.unionByName(update_old_records) \
+                    .withColumn("end_date", F.current_timestamp())
+
+                logger.info(
+                    f"Appending {history_updates.count()} records to history table...")
+                history_updates.write.format(output_format).mode(
+                    "append").save(history_path)
+
+            new_snapshot = insert_records.unionByName(update_new_records)
+
+            if is_table:
+                new_snapshot.write.format(output_format) \
+                    .option("overwriteSchema", "true") \
+                    .mode("overwrite") \
+                    .saveAsTable(current_path)
+            else:
+                new_snapshot.write.format(output_format) \
+                    .option("overwriteSchema", "true") \
+                    .mode("overwrite") \
+                    .save(current_path)
+
+            logger.info("SCD Type 4 (CDF) processing complete.")
+        except AnalysisException as e:
+            logger.warning(f"Tables not found; initializing. Error: {str(e)}")
+            df_with_scd = df.withColumn("start_date", F.current_timestamp()) \
+                .withColumn("end_date", F.lit(None).cast("timestamp"))
+
+            # Enable CDF for the first time
             if is_table:
                 df_with_scd.write.format(output_format)\
+                    .option("delta.enableChangeDataFeed", "true") \
                     .option("overwriteSchema", "true") \
                     .mode("overwrite")\
                     .saveAsTable(current_path)
                 df_with_scd.write.format(output_format)\
+                    .option("delta.enableChangeDataFeed", "true") \
                     .option("overwriteSchema", "true") \
                     .mode("overwrite")\
                     .saveAsTable(history_path)
             else:
                 df_with_scd.write.format(output_format)\
+                    .option("delta.enableChangeDataFeed", "true") \
                     .option("overwriteSchema", "true") \
                     .mode("overwrite")\
                     .save(current_path)
                 df_with_scd.write.format(output_format)\
+                    .option("delta.enableChangeDataFeed", "true") \
                     .option("overwriteSchema", "true") \
                     .mode("overwrite")\
                     .save(history_path)

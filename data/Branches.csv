@@ -1,0 +1,7 @@
+BranchID,BranchName,ds_partition_date,Location
+BR1,Branch 1,2024-01-03,City 1
+BR2,Branch 2,2024-02-26,City 2
+BR3,Branch 3,2024-01-19,City 3
+BR4,Branch 4,2024-02-24,City 4
+BR5,Branch 5,2024-02-26,City 5
+BR5,Noa,2024-01-04,Noi

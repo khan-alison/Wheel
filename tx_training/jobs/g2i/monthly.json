@@ -1,0 +1,106 @@
+{
+  "master": "local",
+  "input": [
+    {
+      "format": "csv",
+      "df_name": "accounts",
+      "table": "data/Accounts.csv",
+      "isCache": true,
+      "persistentLevel": "MEMORY_ONLY",
+      "option": {
+        "header": true,
+        "inferSchema": true
+      }
+    },
+    {
+      "format": "csv",
+      "df_name": "branches",
+      "table": "data/Branches.csv",
+      "isCache": true,
+      "persistentLevel": "MEMORY_ONLY",
+      "option": {
+        "header": true,
+        "inferSchema": true
+      }
+    },
+    {
+      "format": "csv",
+      "df_name": "customers",
+      "table": "data/Customers.csv",
+      "isCache": true,
+      "persistentLevel": "MEMORY_ONLY",
+      "option": {
+        "header": true,
+        "inferSchema": true
+      }
+    },
+    {
+      "format": "csv",
+      "df_name": "loan_payments",
+      "table": "data/LoanPayments.csv",
+      "isCache": true,
+      "persistentLevel": "MEMORY_ONLY",
+      "option": {
+        "header": true,
+        "inferSchema": true
+      }
+    },
+    {
+      "format": "csv",
+      "df_name": "loans",
+      "table": "data/Loans.csv",
+      "isCache": true,
+      "persistentLevel": "MEMORY_ONLY",
+      "option": {
+        "header": true,
+        "inferSchema": true
+      }
+    },
+    {
+      "format": "csv",
+      "df_name": "services",
+      "table": "data/Services.csv",
+      "isCache": true,
+      "persistentLevel": "MEMORY_ONLY",
+      "option": {
+        "header": true,
+        "inferSchema": true
+      }
+    },
+    {
+      "format": "csv",
+      "df_name": "transaction_details",
+      "table": "data/TransactionDetails.csv",
+      "isCache": true,
+      "persistentLevel": "MEMORY_ONLY",
+      "option": {
+        "header": true,
+        "inferSchema": true
+      }
+    },
+    {
+      "format": "csv",
+      "df_name": "transactions",
+      "table": "data/Transactions.csv",
+      "isCache": true,
+      "persistentLevel": "MEMORY_ONLY",
+      "option": {
+        "header": true,
+        "inferSchema": true
+      }
+    }
+  ],
+  "outputs": {
+    "dataframe": "customer_orders",
+    "format": "csv",
+    "scd": {
+      "type": "scd4",
+      "partition_by": ["data_date"],
+      "path": {
+        "current": "data/output/scd4/customers/current",
+        "history": "data/output/scd4/customers/history"
+      },
+      "primary_keys": ["customer_id", "order_id"]
+    }
+  }
+}

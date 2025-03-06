@@ -49,14 +49,13 @@ class ListOrdersInValueRange(BaseG2I):
         result_df = filtered_orders_df.select("OrderID", "TotalOrderValue")
         return result_df
 
-    def write_data(self, df: DataFrame):
-
-        super().write_data(df)
+    def write_data(self, df: DataFrame, data_date: str):
+        super().write_data(df, data_date)
 
     def execute(self):
         input_dfs = self.read_input()
         result_df = self.transformations(input_dfs)
-        self.write_data(result_df)
+        self.write_data(result_df, self.data_date)
 
 
 def run_execute(config_path=None, data_date=None):

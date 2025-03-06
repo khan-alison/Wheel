@@ -1,6 +1,51 @@
-customer_id,name,email,city,country,registration_date
-C1001,John Doe,john@example.com,New York,USA,1/15/2022
-C1002,Alice Lee,alice@example.com,London,UK,6/20/2023
-C1003,Bob Smith,bob@example.com,Los Angeles,USA,11/5/2021
-C1004,David Kim,david@example.com,Hanoi,Vietnam,1/10/2024
-
+CustomerID,Name,Email,AccountType,ds_partition_date,BranchID
+CUST1,Customer 1,customer1@mail.com,Savings,2024-01-26,BR1
+CUST2,Customer 2,customer2@mail.com,Current,2024-02-28,BR2
+CUST3,Customer 3,customer3@mail.com,Current,2024-01-31,BR3
+CUST4,Customer 4,customer4@mail.com,Savings,2024-01-26,BR4
+CUST5,Customer 5,customer5@mail.com,Current,2024-01-05,BR5
+CUST6,Customer 6,customer6@mail.com,Savings,2024-01-18,BR1
+CUST7,Customer 7,customer7@mail.com,Current,2024-01-03,BR2
+CUST8,Customer 8,customer8@mail.com,Savings,2024-01-07,BR3
+CUST9,Customer 9,customer9@mail.com,Current,2024-02-12,BR4
+CUST10,Customer 10,customer10@mail.com,Savings,2024-01-12,BR5
+CUST11,Customer 11,customer11@mail.com,Current,2024-02-04,BR1
+CUST12,Customer 12,customer12@mail.com,Savings,2024-01-05,BR2
+CUST13,Customer 13,customer13@mail.com,Savings,2024-01-28,BR3
+CUST14,Customer 14,customer14@mail.com,Current,2024-02-06,BR4
+CUST15,Customer 15,customer15@mail.com,Current,2024-02-24,BR5
+CUST16,Customer 16,customer16@mail.com,Savings,2024-01-17,BR1
+CUST17,Customer 17,customer17@mail.com,Current,2024-02-27,BR2
+CUST18,Customer 18,customer18@mail.com,Savings,2024-01-14,BR3
+CUST19,Customer 19,customer19@mail.com,Savings,2024-01-14,BR4
+CUST20,Customer 20,customer20@mail.com,Current,2024-02-05,BR5
+CUST21,Customer 21,customer21@mail.com,Savings,2024-02-05,BR1
+CUST22,Customer 22,customer22@mail.com,Savings,2024-02-05,BR2
+CUST23,Customer 23,customer23@mail.com,Current,2024-02-16,BR3
+CUST24,Customer 24,customer24@mail.com,Current,2024-02-05,BR4
+CUST25,Customer 25,customer25@mail.com,Savings,2024-01-19,BR5
+CUST26,Customer 26,customer26@mail.com,Current,2024-02-13,BR1
+CUST27,Customer 27,customer27@mail.com,Savings,2024-02-08,BR2
+CUST28,Customer 28,customer28@mail.com,Current,2024-02-24,BR3
+CUST29,Customer 29,customer29@mail.com,Savings,2024-02-26,BR4
+CUST30,Customer 30,customer30@mail.com,Current,2024-02-12,BR5
+CUST31,Customer 31,customer31@mail.com,Savings,2024-01-13,BR1
+CUST32,Customer 32,customer32@mail.com,Savings,2024-02-20,BR2
+CUST33,Customer 33,customer33@mail.com,Savings,2024-01-25,BR3
+CUST34,Customer 34,customer34@mail.com,Current,2024-01-18,BR4
+CUST35,Customer 35,customer35@mail.com,Savings,2024-01-04,BR5
+CUST36,Customer 36,customer36@mail.com,Current,2024-01-08,BR1
+CUST37,Customer 37,customer37@mail.com,Savings,2024-01-24,BR2
+CUST38,Customer 38,customer38@mail.com,Current,2024-01-15,BR3
+CUST39,Customer 39,customer39@mail.com,Savings,2024-02-25,BR4
+CUST40,Customer 40,customer40@mail.com,Savings,2024-01-21,BR5
+CUST41,Customer 41,customer41@mail.com,Savings,2024-02-10,BR1
+CUST42,Customer 42,customer42@mail.com,Savings,2024-02-19,BR2
+CUST43,Customer 43,customer43@mail.com,Current,2024-02-11,BR3
+CUST44,Customer 44,customer44@mail.com,Savings,2024-01-28,BR4
+CUST45,Customer 45,customer45@mail.com,Current,2024-02-10,BR5
+CUST46,Customer 46,customer46@mail.com,Current,2024-01-09,BR1
+CUST47,Customer 47,customer47@mail.com,Current,2024-02-06,BR2
+CUST48,Customer 48,customer48@mail.com,Current,2024-02-22,BR3
+CUST49,Customer 49,customer49@mail.com,Current,2024-02-23,BR4
+CUST50,Customer 50,customer50@mail.com,Current,2024-01-04,BR5

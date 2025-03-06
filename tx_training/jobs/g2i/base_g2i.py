@@ -66,7 +66,7 @@ class BaseG2I:
         pass
 
     @abstractmethod
-    def write_data(self, df: DataFrame):
+    def write_data(self, df: DataFrame, data_date: str):
         output_config = self.config["outputs"]
         logger.info(output_config)
 
@@ -83,4 +83,4 @@ class BaseG2I:
         writer = writer_class(self.spark, self.scd_handler, scd_conf, options)
 
         logger.info(f"Writing DataFrame to {output_format} at {output_path}")
-        writer.write(df)
+        writer.write(df, data_date)

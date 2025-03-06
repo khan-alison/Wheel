@@ -1,11 +1,9 @@
 import argparse
 import sys
 from typing import Dict
-
 from pyspark.dbutils import DBUtils
 from pyspark.sql import SparkSession, DataFrame
 import pyspark.sql.functions as F
-
 from tx_training.jobs.g2i.base_g2i import BaseG2I
 
 
@@ -36,18 +34,12 @@ class ListCustomersFrom3Cities(BaseG2I):
                 "Required input DataFrames are missing: 'customers_df' or 'orders_df'."
             )
 
-        city_counts_df = (
+        result_df = (
             orders_df
             .groupBy("CustomerID")
             .agg(F.countDistinct(F.col("ShippingCity")).alias("DistinctCitiesCount"))
-        )
-
-        custs_3_plus_df = city_counts_df.filter(
-            F.col("DistinctCitiesCount") >= 3)
-
-        result_df = (
-            custs_3_plus_df
-            .join(customers_df, on="CustomerID", how="inner")
+            .filter(
+                F.col("DistinctCitiesCount") >= 3).join(customers_df, on="CustomerID", how="inner")
             .select("CustomerName", "DistinctCitiesCount")
         )
 
@@ -80,7 +72,6 @@ def main():
         taskKey="create_params", key="data_date")
     skip_condition = dbutils.jobs.taskValues.get(
         taskKey="create_params", key="skip_condition")
-
     metadata_filepath = f"/Workspace/Shared/tx_project_metadata/{job_name}.json"
 
     run_execute(config_path=metadata_filepath, data_date=data_date)

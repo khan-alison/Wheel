@@ -1,0 +1,11 @@
+ServiceID,ServiceName,ServiceType
+SRV1,Service 1,Loan
+SRV2,Service 2,Investment
+SRV3,Service 3,Insurance
+SRV4,Service 4,Investment
+SRV5,Service 5,Insurance
+SRV6,Service 6,Insurance
+SRV7,Service 7,Investment
+SRV8,Service 8,Loan
+SRV9,Service 9,Investment
+SRV10,Service 10,Loan
